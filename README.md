@@ -59,7 +59,7 @@ docker run --name ma1sd \
 -e MA1SD_EXTENDER_PASSWORD="X" \
 -e MA1SD_EXTENDER_MATRIX_DOMAIN="X" \
 -e MA1SD_EXTENDER_FEDERATED_DOMAINS="['X']" \
-ghcr.io/eimis-ans/ma1sd-extender:latest
+eimisans/ma1sd-extender:latest
 ```
 
 ## 💻 NGINX Proxy Setup
