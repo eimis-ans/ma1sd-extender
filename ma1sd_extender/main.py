@@ -1,13 +1,10 @@
+from json import loads
 import uvicorn
-from fastapi import FastAPI, Request, Body, Response, Depends
-from fastapi.responses import JSONResponse
-from starlette.middleware.cors import CORSMiddleware
+from fastapi import Body, Depends, FastAPI, Request, Response
 from fastapi_cache import caches, close_caches
 from fastapi_cache.backends.memory import CACHE_KEY, InMemoryCacheBackend
-from json import loads
-import asyncio
-import search
-import models
+from ma1sd_extender import models, search
+from starlette.middleware.cors import CORSMiddleware
 
 description="""
 The `ma1sd_extender` API allows Matrix user directories to be federated for corporate use.
@@ -78,3 +75,7 @@ async def userDirectory(request: Request, cache: InMemoryCacheBackend = Depends(
     """
     response = await search.findUsers(request, cache)
     return response
+
+def start():
+    """Launched with `poetry run start` at root level"""
+    uvicorn.run("ma1sd_extender.main:app", host="0.0.0.0", port=8000, reload=True)

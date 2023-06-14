@@ -1,11 +1,11 @@
-from fastapi import Request, Header, Depends
+from itertools import chain
+from json import loads
+from os import getenv
+
+from fastapi import Depends, Header, Request
 from fastapi.responses import JSONResponse
 from fastapi_cache.backends.memory import InMemoryCacheBackend
-from os import getenv
 from requests import get, post
-from json import loads
-from itertools import chain
-import asyncio
 
 
 
