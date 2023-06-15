@@ -1,62 +1,52 @@
-# https://github.com/svx/poetry-fastapi-docker/blob/main/docker/Dockerfile
-FROM python:3.10 as python-base
+# -----
+FROM python:3.10-slim-buster AS builder
 
-ENV PYTHONUNBUFFERED=1 \
+ENV \
+    # python:
+    PYTHONFAULTHANDLER=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
     PYTHONDONTWRITEBYTECODE=1 \
+    # pip:
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    # poetry:
+    POETRY_VERSION=1.5.1 \
     POETRY_NO_INTERACTION=1 \
-    PYSETUP_PATH="/opt/pysetup" \
-    VENV_PATH="/opt/pysetup/.venv"
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_CACHE_DIR='/var/cache/pypoetry' \
+    PATH="$PATH:/root/.local/bin"
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
+RUN  apt-get update \
+  && apt-get install --no-install-recommends -y \
+    build-essential=12.6 \
+    curl=7.64.0-4+deb10u6 \
+  && curl -sSL https://install.python-poetry.org | python3 \
+  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+  && apt-get clean -y  \
+  && rm -rf /var/lib/apt/lists/*
 
-FROM python-base as builder-base
-RUN buildDeps="build-essential" \
-    && apt-get update \
-    && apt-get install --no-install-recommends -y \
-        curl \
-        vim \
-        netcat \
-    && apt-get install -y --no-install-recommends $buildDeps \
-    && rm -rf /var/lib/apt/lists/*
+ENV PATH="${PATH}:/root/.local/bin"
 
+WORKDIR /build
 
-ENV POETRY_VERSION=1.1.12
-RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python && \
-    chmod a+x /opt/poetry/bin/poetry
+COPY poetry.lock pyproject.toml ./
+RUN  poetry config virtualenvs.create false \
+    &&  poetry install --no-root --only main
 
-WORKDIR $PYSETUP_PATH
-COPY ./api/poetry.lock ./api/pyproject.toml ./
+COPY ma1sd_extender ma1sd_extender
 
-RUN poetry install --no-dev  # respects
-# RUN poetry add "uvicorn[standard]"
-# RUN cat pyproject.toml
-# RUN cat poetry.lock
+RUN poetry build
 
-FROM python-base as development
-ENV FASTAPI_ENV=development
+# -----
+FROM python:3.10-slim-buster
 
+COPY --from=builder /build/dist/*.whl /tmp/whl/
 
-# Copying poetry and venv into image
-COPY --from=builder-base $POETRY_HOME $POETRY_HOME
-COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
+RUN  python3 -m pip install --no-cache-dir /tmp/whl/*.whl \
+  && rm -rf /tmp/whl
 
-# Copying in our entrypoint
-COPY ./docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-# venv already has runtime deps installed we get a quicker install
-WORKDIR $PYSETUP_PATH
-RUN poetry install
-
-WORKDIR /api
-COPY ./api .
-
-EXPOSE 8060
-ENTRYPOINT /docker-entrypoint.sh $0 $@
-CMD ["uvicorn", "--reload", "--host=0.0.0.0", "--port=8060", "ma1sd-extender.main:app"]
+ENTRYPOINT ["ma1sd_extender"]

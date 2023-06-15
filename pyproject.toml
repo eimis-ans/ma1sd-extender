@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "ma1sd-extender"
 version = "0.1.0"
-description = ""
-authors = ["Cameron Wickes  <cameronjwickes@gmail.com>"]
+description = "Allows Matrix user directories to be federated for corporate use"
+authors = ["EIMIS <eimis@beta.gouv.fr>","Cameron Wickes <cameronjwickes@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -27,7 +27,8 @@ flake8-tidy-imports = "^4.6.0"
 pytest = "^6.2.5"
 
 [tool.poetry.scripts]
-start = "ma1sd-extender:main"
+start = "ma1sd_extender.main:start"
+ma1sd_extender = "ma1sd_extender.main:start"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
