@@ -10,7 +10,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+
   publish-docker-images:
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -24,7 +28,7 @@ jobs:
         id: docker_metadata
         uses: docker/metadata-action@v4
         with:
-          images: ${{ github.repository }}
+          images: eimisans/ma1sd-extender
           tags: |
             type=raw,enable=${{ !endsWith(github.ref, github.event.repository.default_branch) }},value=${{ env.CI_ACTION_REF_NAME_SLUG }}
             type=raw,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }},value=nightly
@@ -37,7 +41,7 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_HUB_USER }}
+          username: ${{ vars.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
       - name: Build and publish image(s)
@@ -49,8 +53,8 @@ jobs:
           tags: ${{ steps.docker_metadata.outputs.tags }}
           labels: ${{ steps.docker_metadata.outputs.labels }}
 
-
   dockerhub-description:
+    needs: publish-docker-images
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
